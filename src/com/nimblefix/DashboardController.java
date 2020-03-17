@@ -7,15 +7,19 @@ import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseEvent;
+import javafx.stage.DirectoryChooser;
+import javafx.stage.Stage;
 
+import java.io.File;
 import java.net.URL;
 import java.util.ResourceBundle;
 
 public class DashboardController implements Initializable {
+    public Stage curr_stg;
     Server server;
     @FXML TextField port_box;
     @FXML ImageView server_status;
-    @FXML Label server_status_l;
+    @FXML Label server_status_l,wd_label;
 
     Image tick = new Image("file://"+ getClass().getResource("/resources/tick.png").getPath(), 80, 80, true, true);
     Image cross = new Image("file://"+ getClass().getResource("/resources/cross.png").getPath(), 80, 80, true, true);
@@ -43,5 +47,13 @@ public class DashboardController implements Initializable {
     public void initialize(URL location, ResourceBundle resources) {
         server_status.setImage(cross);
 
+    }
+
+    public void browse_clicked(MouseEvent mouseEvent) {
+        DirectoryChooser dc = new DirectoryChooser();
+        dc.setTitle("Select working directory");
+        File temp = dc.showDialog(curr_stg);
+        if(temp!=null)
+            wd_label.setText(temp.getPath());
     }
 }

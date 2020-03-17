@@ -21,8 +21,8 @@
       <Label layoutX="26.0" layoutY="135.0" text="Port No." />
       <TextField fx:id="port_box" layoutX="79.0" layoutY="131.0" prefHeight="25.0" prefWidth="77.0" text="2180" />
       <Label layoutX="26.0" layoutY="179.0" text="Working Directory : " />
-      <Label layoutX="142.0" layoutY="179.0" prefHeight="17.0" prefWidth="266.0" text="\%Working Directory%" />
-      <Button layoutX="420.0" layoutY="175.0" mnemonicParsing="false" text="Browse" />
+      <Label fx:id="wd_label" layoutX="142.0" layoutY="179.0" prefHeight="17.0" prefWidth="266.0" text="None" />
+      <Button layoutX="420.0" layoutY="175.0" mnemonicParsing="false" onMouseClicked="#browse_clicked" text="Browse" />
       <TitledPane animated="false" collapsible="false" layoutX="13.0" layoutY="216.0" prefHeight="116.0" prefWidth="475.0" text="Database Connectivity">
         <content>
           <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="66.0" prefWidth="447.0">

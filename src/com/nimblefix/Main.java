@@ -15,6 +15,7 @@ public class Main extends Application {
         primaryStage.setTitle("Dashboard");
         primaryStage.setScene(new Scene(root, 500, 600));
         primaryStage.show();
+        ((DashboardController)loader.getController()).curr_stg = primaryStage;
         ((DashboardController)loader.getController()).setServer(new Server());
     }
 

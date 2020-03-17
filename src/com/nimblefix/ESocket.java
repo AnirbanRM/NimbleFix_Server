@@ -50,7 +50,7 @@ public class ESocket {
                 if(authmsg2.getMESSAGEBODY().equals("FAILURE"))
                     clear();
                 else if(authmsg2.getMESSAGEBODY().equals("SUCCESS"))
-                    converttoStaff();
+                    converttoStaff(authmsg.getUser());
             }
         }
         else{
@@ -66,10 +66,8 @@ public class ESocket {
         else return false;
     }
 
-    private void converttoStaff(){
-        StaffClient sc = new StaffClient(SOCKET,WRITER,READER);
-
-
+    private void converttoStaff(String staffID){
+        StaffClient sc = new StaffClient(SOCKET,WRITER,READER,staffID);
     }
 
     private void clear() {
