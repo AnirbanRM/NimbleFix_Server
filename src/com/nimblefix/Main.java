@@ -13,7 +13,7 @@ public class Main extends Application {
         FXMLLoader loader = new FXMLLoader(getClass().getResource("DashboardUI.fxml"));
         Parent root = loader.load();
         primaryStage.setTitle("Dashboard");
-        primaryStage.setScene(new Scene(root, 500, 500));
+        primaryStage.setScene(new Scene(root, 500, 600));
         primaryStage.show();
         ((DashboardController)loader.getController()).setServer(new Server());
     }

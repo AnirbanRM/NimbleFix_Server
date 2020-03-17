@@ -2,7 +2,6 @@ package com.nimblefix;
 
 import com.nimblefix.Clients.StaffClient;
 import com.nimblefix.ControlMessages.AuthenticationMessage;
-import com.sun.org.apache.regexp.internal.RE;
 
 import java.io.*;
 import java.net.Socket;
