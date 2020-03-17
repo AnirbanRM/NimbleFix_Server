@@ -1,5 +1,7 @@
 package com.nimblefix;
 
+import com.nimblefix.Clients.StaffClient;
+
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -11,10 +13,10 @@ public class Server {
 
     Thread connection_acceptor_thread;
     ServerSocket serverSocket;
-
+    ServerParam serverParam;
 
     //HashMaps for different sockets
-    //===================
+    HashMap<String, StaffClient> staffs;
     //===================
 
     //TODO To make different user classes and add hasmap
@@ -25,8 +27,17 @@ public class Server {
 
 
 
-    Server(){
+    Server(ServerParam serverParam){
+        this.serverParam=serverParam;
         System.out.println("Server constructed");
+    }
+
+    public ServerParam getServerParam() {
+        return serverParam;
+    }
+
+    public void setServerParam(ServerParam serverParam) {
+        this.serverParam = serverParam;
     }
 
     public void startListening(String p){
@@ -51,7 +62,7 @@ public class Server {
                             @Override
                             public void run() {
                                 try {
-                                    ESocket s = new ESocket(socket);
+                                    ESocket s = new ESocket(socket,serverParam);
                                 } catch (IOException e) { e.printStackTrace(); }
                             }
                         });

@@ -11,15 +11,27 @@ public class OrganizationsExchangerMessage implements Serializable {
     String organizationOwner;
 
     int messageType;
+    String body;
 
     public static class messageType{
         public final static int CLIENT_QUERY = 0;
         public final static int CLIENT_POST = 1;
+        public final static int CLIENT_GETALL = 2;
+        public final static int CLIENT_GET = 3;
     }
 
     public OrganizationsExchangerMessage(String organizationOwner,int messageType){
+        this.organizations = new ArrayList<Organization>();
         this.organizationOwner = organizationOwner;
         this.messageType = messageType;
+    }
+
+    public String getBody() {
+        return body;
+    }
+
+    public void setBody(String body) {
+        this.body = body;
     }
 
     public int getMessageType() {

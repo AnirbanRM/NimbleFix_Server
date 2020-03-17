@@ -14,9 +14,9 @@ public class Main extends Application {
         Parent root = loader.load();
         primaryStage.setTitle("Dashboard");
         primaryStage.setScene(new Scene(root, 500, 600));
+        primaryStage.setResizable(false);
         primaryStage.show();
         ((DashboardController)loader.getController()).curr_stg = primaryStage;
-        ((DashboardController)loader.getController()).setServer(new Server());
     }
 
     public static void main(String[] args) {

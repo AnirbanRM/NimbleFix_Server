@@ -24,13 +24,9 @@ public class DashboardController implements Initializable {
     Image tick = new Image("file://"+ getClass().getResource("/resources/tick.png").getPath(), 80, 80, true, true);
     Image cross = new Image("file://"+ getClass().getResource("/resources/cross.png").getPath(), 80, 80, true, true);
 
-
-    public void setServer(Server s){
-        this.server = s;
-    }
-
     public void start_stop_clicked(MouseEvent mouseEvent) {
         if(!server.isListening) {
+            server.setServerParam(new ServerParam(wd_label.getText(),Integer.parseInt(port_box.getText()),null,null, null, null ));
             server.startListening(port_box.getText());
             server_status.setImage(tick);
             server_status_l.setText("Server running");
@@ -46,7 +42,7 @@ public class DashboardController implements Initializable {
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         server_status.setImage(cross);
-
+        server = new Server(null);
     }
 
     public void browse_clicked(MouseEvent mouseEvent) {

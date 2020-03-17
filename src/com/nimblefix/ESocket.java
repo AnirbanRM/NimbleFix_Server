@@ -11,7 +11,10 @@ public class ESocket {
     ObjectInputStream READER = null;
     ObjectOutputStream WRITER = null;
 
-    ESocket(Socket s) throws IOException {
+    ServerParam serverParam;
+
+    ESocket(Socket s,ServerParam serverParam) throws IOException {
+        this.serverParam=serverParam;
         System.out.println("Accepted from "+s.getInetAddress());
         this.SOCKET = s;
         try {
@@ -67,7 +70,7 @@ public class ESocket {
     }
 
     private void converttoStaff(String staffID){
-        StaffClient sc = new StaffClient(SOCKET,WRITER,READER,staffID);
+        StaffClient sc = new StaffClient(SOCKET,WRITER,READER,staffID,serverParam);
     }
 
     private void clear() {
