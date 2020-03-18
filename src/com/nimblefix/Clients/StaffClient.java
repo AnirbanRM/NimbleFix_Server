@@ -97,7 +97,9 @@ public class StaffClient {
 
         for(Organization o : organizations) {
             try {
-                FileOutputStream fos = new FileOutputStream(new File(folder.getPath() + "/" +o.getOui()+".nfxm"));
+                File f = new File(folder.getPath() + "/" +o.getOui()+".nfxm");
+                if(f.exists())f.delete();
+                FileOutputStream fos = new FileOutputStream(f);
                 ObjectOutputStream oos = new ObjectOutputStream(fos);
                 oos.writeObject(o);
                 oos.close();
