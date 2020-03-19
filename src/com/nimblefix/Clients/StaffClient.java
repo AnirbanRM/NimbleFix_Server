@@ -33,7 +33,7 @@ public class StaffClient {
             public void run() {
                 while(true){
                     try {
-                        Object obj = READER.readObject();
+                        Object obj = READER.readUnshared();
                         handle(obj);
                     } catch (Exception e) { clear(); break;}
         }
@@ -50,6 +50,22 @@ public class StaffClient {
                 saveOrganization((OrganizationsExchangerMessage) object);
             else if(((OrganizationsExchangerMessage) object).getMessageType()==OrganizationsExchangerMessage.messageType.CLIENT_GET||((OrganizationsExchangerMessage) object).getMessageType()==OrganizationsExchangerMessage.messageType.CLIENT_GETALL)
                 sendOrganization((OrganizationsExchangerMessage) object);
+            else if(((OrganizationsExchangerMessage) object).getMessageType()==OrganizationsExchangerMessage.messageType.CLIENT_DELETE)
+                deleteOrganization((OrganizationsExchangerMessage) object);
+        }
+    }
+
+    private void deleteOrganization(OrganizationsExchangerMessage organizationsExchangerMessage) {
+        if(organizationsExchangerMessage.getMessageType()==OrganizationsExchangerMessage.messageType.CLIENT_DELETE){
+            File f = new File(serverParam.getWorkingDirectory()+"/userdata/"+organizationsExchangerMessage.getOrganizationOwner()+"/organizations/"+organizationsExchangerMessage.getBody()+".nfxm");
+            if(f.exists())
+                f.delete();
+
+            organizationsExchangerMessage.setBody("SUCCESS");
+            organizationsExchangerMessage.setOrganizationOwner(null);
+            try {
+                WRITER.writeUnshared(organizationsExchangerMessage);
+            }catch (Exception e){}
         }
     }
 
@@ -62,8 +78,10 @@ public class StaffClient {
                 for(File f : orgfiles){
                     if(f.getPath().substring(f.getPath().length()-5).equals(".nfxm")) {
                         try {
-                            Organization obj = (Organization) new ObjectInputStream(new FileInputStream(f)).readObject();
+                            FileInputStream fi = new FileInputStream(f);
+                            Organization obj = (Organization) new ObjectInputStream(fi).readObject();
                             organizationsExchangerMessage.getOrganizations().add(obj);
+                            fi.close();
                         }catch (Exception e){ }
                     }
                 }
@@ -76,15 +94,17 @@ public class StaffClient {
                 File orgfile = new File(userOrganizationFileDIR+"/"+organizationsExchangerMessage.getBody()+".nfxm");
                 if(orgfile.exists()){
                     try {
-                        Organization obj = (Organization) new ObjectInputStream(new FileInputStream(orgfile)).readObject();
+                        FileInputStream fi = new FileInputStream(orgfile);
+                        Organization obj = (Organization) new ObjectInputStream(fi).readObject();
                         organizationsExchangerMessage.getOrganizations().add(obj);
+                        fi.close();
                     }catch (Exception e){}
                 }
             }
         }
 
         try {
-            WRITER.writeObject(organizationsExchangerMessage);
+            WRITER.writeUnshared(organizationsExchangerMessage);
         }catch (Exception e){ }
     }
 
@@ -99,10 +119,11 @@ public class StaffClient {
             try {
                 File f = new File(folder.getPath() + "/" +o.getOui()+".nfxm");
                 if(f.exists())f.delete();
+
                 FileOutputStream fos = new FileOutputStream(f);
                 ObjectOutputStream oos = new ObjectOutputStream(fos);
                 oos.writeObject(o);
-                oos.close();
+                fos.close();
             }catch (Exception e){}
         }
 
@@ -111,7 +132,7 @@ public class StaffClient {
         organizationsExchangerMessage.setBody("SUCCESSFULLY SAVED");
 
         try {
-            WRITER.writeObject(organizationsExchangerMessage);
+            WRITER.writeUnshared(organizationsExchangerMessage);
         }catch (Exception e){ }
     }
 
@@ -123,17 +144,19 @@ public class StaffClient {
             for(File f : orgfiles){
                 if(f.getPath().substring(f.getPath().length()-5).equals(".nfxm")) {
                     try {
-                        Organization obj = (Organization) new ObjectInputStream(new FileInputStream(f)).readObject();
+                        FileInputStream fi= new FileInputStream(f);
+                        Organization obj = (Organization) new ObjectInputStream(fi).readObject();
                         obj.setFloors(null);
                         obj.setCategories(null);
                         organizationsExchangerMessage.getOrganizations().add(obj);
+                        fi.close();
                     }catch (Exception e){ }
                 }
             }
         }
 
         try {
-            WRITER.writeObject(organizationsExchangerMessage);
+            WRITER.writeUnshared(organizationsExchangerMessage);
         } catch (IOException e) { System.out.println(e.getMessage()); }
     }
 

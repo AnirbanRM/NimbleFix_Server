@@ -36,8 +36,8 @@ public class ESocket {
     private void Authenticate() {
         AuthenticationMessage authmsg = new AuthenticationMessage(AuthenticationMessage.Server,AuthenticationMessage.Challenge,null,null);
         try {
-            WRITER.writeObject(authmsg);
-            Object reply_obj = READER.readObject();
+            WRITER.writeUnshared(authmsg);
+            Object reply_obj = READER.readUnshared();
             handleAuthentication((AuthenticationMessage)reply_obj);
         } catch (Exception e) { clear(); e.printStackTrace(); }
     }
@@ -48,7 +48,7 @@ public class ESocket {
                 AuthenticationMessage authmsg2 = new AuthenticationMessage(AuthenticationMessage.Server, AuthenticationMessage.Response, null, null);
                 if(checkValidityStaff(authmsg.getUser(),authmsg.getPassword())) authmsg2.setMESSAGEBODY("SUCCESS");
                 else authmsg2.setMESSAGEBODY("FAILURE");
-                try{WRITER.writeObject(authmsg2);}catch (Exception e){ }
+                try{WRITER.writeUnshared(authmsg2);}catch (Exception e){ }
 
                 if(authmsg2.getMESSAGEBODY().equals("FAILURE"))
                     clear();
