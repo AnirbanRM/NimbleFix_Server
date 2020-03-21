@@ -1,11 +1,11 @@
 package com.nimblefix;
 
-import com.nimblefix.Clients.StaffClient;
+import com.nimblefix.Clients.StaffClientMonitor;
 
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class Server {
     boolean isListening = false;
@@ -16,7 +16,7 @@ public class Server {
     ServerParam serverParam;
 
     //HashMaps for different sockets
-    HashMap<String, StaffClient> staffs;
+    public static ConcurrentHashMap<String, StaffClientMonitor> monitorStaffs;
     //===================
 
     //TODO To make different user classes and add hasmap
@@ -29,6 +29,12 @@ public class Server {
 
     Server(ServerParam serverParam){
         this.serverParam=serverParam;
+
+        // TODO : Initialize all the user HashMaps
+        monitorStaffs = new ConcurrentHashMap<String, StaffClientMonitor>();
+        //TODO:-----------------------------------
+
+
         System.out.println("Server constructed");
     }
 

@@ -1,10 +1,12 @@
 package com.nimblefix.Clients;
 
+import com.nimblefix.ControlMessages.MonitorMessage;
 import com.nimblefix.ControlMessages.OrganizationsExchangerMessage;
+import com.nimblefix.Server;
 import com.nimblefix.ServerParam;
 import com.nimblefix.core.Organization;
+import com.sun.istack.internal.Nullable;
 
-import javax.annotation.processing.SupportedSourceVersion;
 import java.io.*;
 import java.net.Socket;
 import java.util.ArrayList;
@@ -16,6 +18,8 @@ public class StaffClient {
     ServerParam serverParam;
 
     String userID;
+
+    boolean listen=true;
 
     public StaffClient(Socket socket, ObjectOutputStream writer, ObjectInputStream reader, String userID, ServerParam serverParam) {
         this.SOCKET =socket;
@@ -32,11 +36,12 @@ public class StaffClient {
             @Override
             public void run() {
                 while(true){
+                    if(!listen)break;
                     try {
                         Object obj = READER.readUnshared();
                         handle(obj);
                     } catch (Exception e) { clear(); break;}
-        }
+                }
             }
         });
         reader_thread.start();
@@ -52,6 +57,9 @@ public class StaffClient {
                 sendOrganization((OrganizationsExchangerMessage) object);
             else if(((OrganizationsExchangerMessage) object).getMessageType()==OrganizationsExchangerMessage.messageType.CLIENT_DELETE)
                 deleteOrganization((OrganizationsExchangerMessage) object);
+        }
+        else if(object instanceof MonitorMessage){
+            handleMonitor((MonitorMessage) object);
         }
     }
 
@@ -158,6 +166,41 @@ public class StaffClient {
         try {
             WRITER.writeUnshared(organizationsExchangerMessage);
         } catch (IOException e) { System.out.println(e.getMessage()); }
+    }
+
+
+
+    private void handleMonitor(MonitorMessage object) {
+        Organization o =null;
+
+        if(object.getAdminID().equals(this.userID)&&object.getMessageType()==MonitorMessage.MessageType.CLIENT_MONITOR_START){
+
+            File f = new File(serverParam.getWorkingDirectory()+"/userdata/"+object.getAdminID()+"/organizations/"+ object.getOrganizationID()+".nfxm");
+            if(f.exists()){
+                try {
+                    FileInputStream fis = new FileInputStream(f);
+                    ObjectInputStream ois = new ObjectInputStream(fis);
+                    o = (Organization) ois.readObject();
+                    object.setOrganization(o);
+                    object.setOrganizationID(o.getOui());
+                    object.setBody("SUCCESS");
+                    fis.close();
+                }catch(Exception e){ object.setBody("CORRUPTED_FILE"); }
+            }
+            else object.setBody("FILE_NOT_FOUND");
+
+            object.setAdminID(null);
+            try {
+                WRITER.writeUnshared(object);
+                if(o!=null) {
+                    listen=false;
+                    StaffClientMonitor scm = new StaffClientMonitor(this, o);
+                    this.finalize();
+                }
+            } catch(Exception e){ } catch (Throwable throwable) {
+                throwable.printStackTrace();
+            }
+        }
     }
 
     private void clear() {
