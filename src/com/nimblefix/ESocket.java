@@ -5,6 +5,11 @@ import com.nimblefix.ControlMessages.AuthenticationMessage;
 
 import java.io.*;
 import java.net.Socket;
+import java.net.SocketException;
+import java.sql.Time;
+import java.util.Random;
+import java.util.Timer;
+import java.util.TimerTask;
 
 public class ESocket {
     Socket SOCKET=null;
@@ -56,11 +61,91 @@ public class ESocket {
                     converttoStaff(authmsg.getUser());
             }
         }
+
+        else if(authmsg.getSource()==AuthenticationMessage.User) {
+            if(authmsg.getMessageType()==AuthenticationMessage.Response){
+
+                if(authmsg.getPassword()==null||authmsg.getPassword().length()==6){
+
+                    AuthenticationMessage authmsg2 = new AuthenticationMessage(AuthenticationMessage.Server,AuthenticationMessage.Response,null,null);
+                    authmsg2.setMESSAGEBODY("REQUEST_OTP");
+                    Server.otp_Hashmap.put(authmsg.getUser(),randomOTP());
+                    Timer t = setExpiry(authmsg.getUser());
+
+                    try {
+                        WRITER.writeUnshared(authmsg2);
+                    } catch (Exception e) {
+                        clear();
+                        return;
+                    }
+
+                    while(true){
+                        try {
+                            authmsg2 = (AuthenticationMessage) READER.readUnshared();
+                        }catch (Exception e){
+                            clear();
+                            return;
+                        }
+
+                        if(authmsg2!=null){
+                            if(authmsg2.getPassword().equals(Server.otp_Hashmap.get(authmsg2.getUser()))){
+                                t.cancel();
+                                Server.otp_Hashmap.remove(authmsg2.getUser());
+                                handleOnCorrectOTP();
+                            }
+                            else{
+                                authmsg2 = new AuthenticationMessage(AuthenticationMessage.Server,AuthenticationMessage.Response,null,null);
+                                authmsg2.setMESSAGEBODY("INVALID");
+                                try {
+                                    WRITER.reset();
+                                    WRITER.writeUnshared(authmsg2);
+                                    continue;
+                                }catch (Exception e){ clear(); }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         else{
 
             //TODO :: VERYY IMPORTANT
 
         }
+    }
+
+    private void handleOnCorrectOTP() {
+        System.out.println(Server.otp_Hashmap.size());
+        AuthenticationMessage authmsg2 = new AuthenticationMessage(AuthenticationMessage.Server,AuthenticationMessage.Response,null,null);
+        authmsg2.setMESSAGEBODY("VALID");
+
+        try {
+            WRITER.reset();
+            WRITER.writeUnshared(authmsg2);
+        }catch (Exception e){ clear(); }
+
+
+    }
+
+    private Timer setExpiry(final String user) {
+        Timer t = new Timer();
+        t.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                Server.otp_Hashmap.remove(user);
+            }
+        },5*60*1000 );
+        return t;
+    }
+
+    private String randomOTP() {
+        String otp = "";
+        Random rand = new Random();
+        for(int i = 0; i< 6; i++)
+            otp+=String.valueOf(rand.nextInt(10));
+        System.out.println(otp);
+        return otp;
     }
 
     private boolean checkValidityStaff(String a, String b){

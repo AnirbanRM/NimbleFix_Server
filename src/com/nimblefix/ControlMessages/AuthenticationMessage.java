@@ -1,8 +1,7 @@
 package com.nimblefix.ControlMessages;
 
-import java.awt.*;
+
 import java.io.Serializable;
-import java.net.Socket;
 
 public class AuthenticationMessage implements Serializable {
 
