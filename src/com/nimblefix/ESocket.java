@@ -1,6 +1,7 @@
 package com.nimblefix;
 
 import com.nimblefix.Clients.StaffClient;
+import com.nimblefix.Clients.UserClient;
 import com.nimblefix.ControlMessages.AuthenticationMessage;
 
 import java.io.*;
@@ -91,7 +92,7 @@ public class ESocket {
                             if(authmsg2.getPassword().equals(Server.otp_Hashmap.get(authmsg2.getUser()))){
                                 t.cancel();
                                 Server.otp_Hashmap.remove(authmsg2.getUser());
-                                handleOnCorrectOTP();
+                                handleOnCorrectOTP(authmsg2.getUser());
                             }
                             else{
                                 authmsg2 = new AuthenticationMessage(AuthenticationMessage.Server,AuthenticationMessage.Response,null,null);
@@ -115,7 +116,7 @@ public class ESocket {
         }
     }
 
-    private void handleOnCorrectOTP() {
+    private void handleOnCorrectOTP(String user) {
         System.out.println(Server.otp_Hashmap.size());
         AuthenticationMessage authmsg2 = new AuthenticationMessage(AuthenticationMessage.Server,AuthenticationMessage.Response,null,null);
         authmsg2.setMESSAGEBODY("VALID");
@@ -125,6 +126,7 @@ public class ESocket {
             WRITER.writeUnshared(authmsg2);
         }catch (Exception e){ clear(); }
 
+        converttoUser(user);
 
     }
 
@@ -156,6 +158,11 @@ public class ESocket {
 
     private void converttoStaff(String staffID){
         StaffClient sc = new StaffClient(SOCKET,WRITER,READER,staffID,serverParam);
+    }
+
+    private void converttoUser(String user) {
+        UserClient uc = new UserClient(SOCKET,WRITER,READER,user,serverParam);
+
     }
 
     private void clear() {
