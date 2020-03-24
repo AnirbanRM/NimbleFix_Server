@@ -7,6 +7,7 @@ import com.nimblefix.ControlMessages.AuthenticationMessage;
 import java.io.*;
 import java.net.Socket;
 import java.net.SocketException;
+import java.sql.ResultSet;
 import java.sql.Time;
 import java.util.Random;
 import java.util.Timer;
@@ -93,18 +94,31 @@ public class ESocket {
                                 t.cancel();
                                 Server.otp_Hashmap.remove(authmsg2.getUser());
                                 handleOnCorrectOTP(authmsg2.getUser());
+                                break;
                             }
                             else{
                                 authmsg2 = new AuthenticationMessage(AuthenticationMessage.Server,AuthenticationMessage.Response,null,null);
                                 authmsg2.setMESSAGEBODY("INVALID");
                                 try {
-                                    WRITER.reset();
+                                    //WRITER.reset();
                                     WRITER.writeUnshared(authmsg2);
                                     continue;
                                 }catch (Exception e){ clear(); }
                             }
                         }
                     }
+                }
+                else if(authmsg.getPassword().length()==50){
+                    AuthenticationMessage authenticationMessage = new AuthenticationMessage(AuthenticationMessage.Server,AuthenticationMessage.Response,null,null);
+                    if(checkTokenAuthenticity(authmsg.getUser(),authmsg.getPassword()))
+                        authenticationMessage.setMESSAGEBODY("VALID");
+                    else
+                        authenticationMessage.setMESSAGEBODY("INVALID");
+                    try {
+                        WRITER.reset();
+                        WRITER.writeUnshared(authenticationMessage);
+                        converttoUser(authmsg.getUser());
+                    }catch (Exception e){ clear(); }
                 }
             }
         }
@@ -116,8 +130,18 @@ public class ESocket {
         }
     }
 
+    private boolean checkTokenAuthenticity(String user, String password) {
+        String query = "SELECT * from client where email = '"+user+"' and token = '"+password+"';";
+        ResultSet rs = Server.dbClass.executequeryView(query);
+        try {
+            while (rs.next()){
+                return true;}
+            return false;
+        }catch (Exception e){}
+        return false;
+    }
+
     private void handleOnCorrectOTP(String user) {
-        System.out.println(Server.otp_Hashmap.size());
         AuthenticationMessage authmsg2 = new AuthenticationMessage(AuthenticationMessage.Server,AuthenticationMessage.Response,null,null);
         authmsg2.setMESSAGEBODY("VALID");
 
@@ -127,7 +151,6 @@ public class ESocket {
         }catch (Exception e){ clear(); }
 
         converttoUser(user);
-
     }
 
     private Timer setExpiry(final String user) {

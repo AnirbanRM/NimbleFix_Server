@@ -6,14 +6,16 @@ public class DBClass {
 
     final String JDBC_DRIVER = "com.mysql.cj.jdbc.Driver";
 
-    String DB_SERVER = "jdbc:mysql://localhost/";
-    String DB_NAME = "BinderDB";
-    String USER = "BinderClient";
-    String PASS = "1234";
+    String DB_SERVER = "";
+    String DB_NAME = "";
+    String USER = "";
+    String PASS = "";
 
     Connection con=null;
 
-    DBClass(String host, String dB, String user, String password){
+    boolean isConfigurationValid = false;
+
+    public DBClass(String host, String dB, String user, String password){
         this.DB_SERVER = "jdbc:mysql://"+host+"/";
         this.DB_NAME = dB;
         this.USER = user;
@@ -22,7 +24,12 @@ public class DBClass {
         try {Class.forName(JDBC_DRIVER);}catch(Exception e) { System.out.println(e.getMessage());}
         try {
             con = DriverManager.getConnection(DB_SERVER+DB_NAME ,USER,PASS);
+            isConfigurationValid=true;
         }catch(SQLException e) { System.out.println("UNABLE TO CONENCT TO DATABASE ! Error : " + e.getMessage());}
+    }
+
+    public boolean isConfigurationValid() {
+        return isConfigurationValid;
     }
 
     public ResultSet executequeryView(String query) {

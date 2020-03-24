@@ -1,19 +1,24 @@
 package com.nimblefix;
 
 import com.nimblefix.Clients.StaffClientMonitor;
+import com.nimblefix.core.DBClass;
+import com.nimblefix.core.ServerConfiguration;
 
-import java.io.IOException;
+import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class Server {
+    public static DBClass dbClass;
+
     boolean isListening = false;
     final int DEF_PORT_NO = 2180;
 
     Thread connection_acceptor_thread;
     ServerSocket serverSocket;
     ServerParam serverParam;
+    static ServerConfiguration currentConfiguration;
 
     //HashMap for OTP
     public static ConcurrentHashMap<String, String> otp_Hashmap;
@@ -29,8 +34,6 @@ public class Server {
     //===================
     //===================
 
-
-
     Server(ServerParam serverParam){
         this.serverParam=serverParam;
 
@@ -40,6 +43,13 @@ public class Server {
         monitorStaffs = new ConcurrentHashMap<String, StaffClientMonitor>();
         //TODO:-----------------------------------
 
+        File config = new File(System.getenv("PROGRAMDATA")+"/NimbleFix/config" +"/settings.dat");
+        try {
+            FileInputStream fi = new FileInputStream(config);
+            ObjectInputStream objectOutputStream = new ObjectInputStream(fi);
+            currentConfiguration = (ServerConfiguration)objectOutputStream.readObject();
+            fi.close();
+        }catch (Exception e) { }
 
         System.out.println("Server constructed");
     }
@@ -57,6 +67,7 @@ public class Server {
         connection_acceptor_thread = new Thread(new Runnable() {
             @Override
             public void run() {
+                dbClass = new DBClass(serverParam.dBServer,serverParam.dBName,serverParam.dBUser,serverParam.dBPassword);
                 System.out.println("Starting server");
                 int port;
                 try { port = Integer.parseInt(p); }

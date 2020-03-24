@@ -3,11 +3,15 @@ package com.nimblefix.Clients;
 import com.nimblefix.ControlMessages.AboutInventoryMessage;
 import com.nimblefix.ControlMessages.AccountUpdationMessage;
 import com.nimblefix.ControlMessages.ComplaintMessage;
+import com.nimblefix.Server;
 import com.nimblefix.ServerParam;
 
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.Random;
 
 public class UserClient {
 
@@ -65,11 +69,43 @@ public class UserClient {
     }
 
     private void updateAccount(AccountUpdationMessage obj) {
+        String token = writeToDBandgetToken(emailID,obj.getName(),obj.getDp());
+        obj.setToken(token);
+        try {
+            writer.reset();
+            writer.writeUnshared(obj);
+        }catch (Exception e){ }
+    }
 
+    private String writeToDBandgetToken(String emailID, String name, String dp) {
+
+        String query = "SELECT token from client where email = '"+ emailID+"';";
+        ResultSet rs = Server.dbClass.executequeryView(query);
+        try {
+            while(rs.next()){
+                return rs.getString("token");
+            }
+
+            String t = generateRandomToken(50);
+            Server.dbClass.executequeryUpdate("INSERT INTO client(name,email,DP,token) values('"+name+"','"+emailID+"','"+dp+"','"+t+"');");
+            return t;
+        } catch (SQLException e) {
+            e.printStackTrace(); return null;
+        }
+    }
+
+    private String generateRandomToken(int size) {
+        String returnval="";
+        String chars = "0123456789QWERTYUIOPLKJHGFDSAZXCVBNMqwertyuioplkjhgfdsazxcvbnm;:'.,<>/?_=+!@#$%^&*()_";
+        Random r = new Random(size);
+        for(int i = 0; i<size;i++){
+            returnval+=chars.charAt(r.nextInt(chars.length()));
+        }
+        return returnval;
     }
 
     private void clear() {
-        System.out.println("Clearing client");
+        System.out.println("Clearing Userclient");
         try{ writer.close(); writer=null; }catch (Exception e){}
         try{ reader.close(); reader = null; }catch (Exception e){}
         try{ socket.close(); socket = null; }catch (Exception e){}

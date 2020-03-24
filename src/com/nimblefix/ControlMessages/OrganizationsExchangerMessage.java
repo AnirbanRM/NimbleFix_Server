@@ -1,7 +1,6 @@
 package com.nimblefix.ControlMessages;
 
 import com.nimblefix.core.Organization;
-import javafx.scene.paint.Color;
 
 import java.io.Serializable;
 import java.util.ArrayList;
