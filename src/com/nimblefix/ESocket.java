@@ -6,9 +6,7 @@ import com.nimblefix.ControlMessages.AuthenticationMessage;
 
 import java.io.*;
 import java.net.Socket;
-import java.net.SocketException;
 import java.sql.ResultSet;
-import java.sql.Time;
 import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;

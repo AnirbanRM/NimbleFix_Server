@@ -9,6 +9,8 @@ import com.sun.istack.internal.Nullable;
 
 import java.io.*;
 import java.net.Socket;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 
 public class StaffClient {
@@ -65,7 +67,10 @@ public class StaffClient {
 
     private void deleteOrganization(OrganizationsExchangerMessage organizationsExchangerMessage) {
         if(organizationsExchangerMessage.getMessageType()==OrganizationsExchangerMessage.messageType.CLIENT_DELETE){
-            File f = new File(serverParam.getWorkingDirectory()+"/userdata/"+organizationsExchangerMessage.getOrganizationOwner()+"/organizations/"+organizationsExchangerMessage.getBody()+".nfxm");
+
+            Server.dbClass.executequeryUpdate("DELETE from organizations where orgid = '"+organizationsExchangerMessage.getBody()+"';");
+
+            File f = new File(serverParam.getWorkingDirectory()+"/userdata/"+userID+"/organizations/"+organizationsExchangerMessage.getBody()+".nfxm");
             if(f.exists())
                 f.delete();
 
@@ -80,7 +85,7 @@ public class StaffClient {
     private void sendOrganization(OrganizationsExchangerMessage organizationsExchangerMessage) {
         if(organizationsExchangerMessage.getMessageType()==OrganizationsExchangerMessage.messageType.CLIENT_GETALL){
 
-            File userOrganizationFileDIR = new File(serverParam.getWorkingDirectory()+"/userdata/"+organizationsExchangerMessage.getOrganizationOwner()+"/organizations");
+            File userOrganizationFileDIR = new File(serverParam.getWorkingDirectory()+"/userdata/"+userID+"/organizations");
             if(userOrganizationFileDIR.exists()){
                 File orgfiles[] = userOrganizationFileDIR.listFiles();
                 for(File f : orgfiles){
@@ -97,7 +102,7 @@ public class StaffClient {
         }
         else if(organizationsExchangerMessage.getMessageType()==OrganizationsExchangerMessage.messageType.CLIENT_GET){
 
-            File userOrganizationFileDIR = new File(serverParam.getWorkingDirectory()+"/userdata/"+organizationsExchangerMessage.getOrganizationOwner()+"/organizations");
+            File userOrganizationFileDIR = new File(serverParam.getWorkingDirectory()+"/userdata/"+userID+"/organizations");
             if(userOrganizationFileDIR.exists()){
                 File orgfile = new File(userOrganizationFileDIR+"/"+organizationsExchangerMessage.getBody()+".nfxm");
                 if(orgfile.exists()){
@@ -119,11 +124,27 @@ public class StaffClient {
     private void saveOrganization(OrganizationsExchangerMessage organizationsExchangerMessage) {
         ArrayList<Organization> organizations = organizationsExchangerMessage.getOrganizations();
 
-        File folder = new File(serverParam.getWorkingDirectory()+"/userdata/"+organizationsExchangerMessage.getOrganizationOwner()+"/organizations");
+        File folder = new File(serverParam.getWorkingDirectory()+"/userdata/"+userID+"/organizations");
         if(!folder.exists())
             folder.mkdirs();
 
         for(Organization o : organizations) {
+
+            try {
+                ResultSet rs = Server.dbClass.executequeryView("SELECT * from organizations where orgid = '" + o.getOui() + "';");
+                while(rs.next()){
+                    if(rs.getString("owner").equals(userID))break;
+                    organizationsExchangerMessage.setOrganizations(null);
+                    organizationsExchangerMessage.setOrganizationOwner(null);
+                    organizationsExchangerMessage.setBody("EXISTS");
+                    WRITER.writeUnshared(organizationsExchangerMessage);
+                    return;
+                }
+                Server.dbClass.executequeryUpdate("INSERT INTO organizations(orgid,owner) values('"+o.getOui()+"','"+userID+"');");
+
+            }catch (Exception e){ }
+
+
             try {
                 File f = new File(folder.getPath() + "/" +o.getOui()+".nfxm");
                 if(f.exists())f.delete();
@@ -146,7 +167,7 @@ public class StaffClient {
 
     private void exchangeOrganizationSummary(OrganizationsExchangerMessage organizationsExchangerMessage) {
 
-        File userOrganizationFileDIR = new File(serverParam.getWorkingDirectory()+"/userdata/"+organizationsExchangerMessage.getOrganizationOwner()+"/organizations");
+        File userOrganizationFileDIR = new File(serverParam.getWorkingDirectory()+"/userdata/"+userID+"/organizations");
         if(userOrganizationFileDIR.exists()){
             File orgfiles[] = userOrganizationFileDIR.listFiles();
             for(File f : orgfiles){
