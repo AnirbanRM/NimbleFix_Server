@@ -69,7 +69,9 @@ public class ESocket {
 
                     AuthenticationMessage authmsg2 = new AuthenticationMessage(AuthenticationMessage.Server,AuthenticationMessage.Response,null,null);
                     authmsg2.setMESSAGEBODY("REQUEST_OTP");
-                    Server.otp_Hashmap.put(authmsg.getUser(),randomOTP());
+                    String otp_temp = randomOTP();
+                    Server.otp_Hashmap.put(authmsg.getUser(),otp_temp);
+                    sendOTPEmail(authmsg.getUser(),otp_temp);
                     Timer t = setExpiry(authmsg.getUser());
 
                     try {
@@ -128,6 +130,20 @@ public class ESocket {
         }
     }
 
+    public void sendOTPEmail(final String user, final String otp_temp){
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                String msg = "<h3>Dear User,</h3><br>"
+                        +"<p>Thank you for logging into NimbleFix account.<br><br>Your OTP is : <b>"+otp_temp+"</b><br><br>"
+                        +"If you didn't do it, please ignore this mail.<br><br>Thank you.</p>";
+                try {
+                    Server.smtpClass.sendMail("NimbleFix", user, "NimbleFix OTP", msg);
+                }catch (Exception e){ System.out.println(user); System.out.println(otp_temp); System.out.println(e.getMessage().toString()); }
+            }
+        }).start();
+    }
+
     private boolean checkTokenAuthenticity(String user, String password) {
         String query = "SELECT * from client where email = '"+user+"' and token = '"+password+"';";
         ResultSet rs = Server.dbClass.executequeryView(query);
@@ -167,7 +183,6 @@ public class ESocket {
         Random rand = new Random();
         for(int i = 0; i< 6; i++)
             otp+=String.valueOf(rand.nextInt(10));
-        System.out.println(otp);
         return otp;
     }
 

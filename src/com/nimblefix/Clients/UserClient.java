@@ -5,6 +5,7 @@ import com.nimblefix.ControlMessages.AccountUpdationMessage;
 import com.nimblefix.ControlMessages.ComplaintMessage;
 import com.nimblefix.Server;
 import com.nimblefix.ServerParam;
+import com.nimblefix.core.Complaint;
 import com.nimblefix.core.InventoryItem;
 import com.nimblefix.core.Organization;
 import com.nimblefix.core.OrganizationalFloors;
@@ -17,6 +18,7 @@ import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Date;
 import java.util.Random;
 
 public class UserClient {
@@ -99,7 +101,59 @@ public class UserClient {
     }
 
     private void handleComplaint(ComplaintMessage obj) {
+        obj.setBody("FAILURE"); //Assume its a fail...
+        String owner=null;
+        ResultSet rs = Server.dbClass.executequeryView("SELECT * from organizations where orgid = '"+obj.getComplaint().getOrganizationID()+"';");
+        try {
+            while (rs.next())
+                owner = rs.getString("owner");
+        }catch (SQLException e){ }
 
+        if(owner!=null) {
+            File userOrganizationFileDIR = new File(serverParam.getWorkingDirectory() + "/userdata/" + owner + "/organizations");
+            if (userOrganizationFileDIR.exists()) {
+                File orgfile = new File(userOrganizationFileDIR.getPath() + "/" + obj.getComplaint().getOrganizationID() + ".nfxm");
+                if(orgfile.exists()) {
+                    try {
+                        FileInputStream fi = new FileInputStream(orgfile);
+                        Organization o = (Organization) new ObjectInputStream(fi).readObject();
+                        for (OrganizationalFloors ofl : o.getFloors()) {
+                            InventoryItem i = ofl.getInventories().get(obj.getComplaint().getInventoryID());
+                            if (i != null) {
+                                obj.getComplaint().setComplaintID("COMP000000000");
+                                obj.getComplaint().setProblemStatus(Complaint.Status.UNFIXED);
+                                obj.setBody("SUCCESS");
+                            }
+                        }
+                        fi.close();
+                    } catch (Exception e) { }
+                }
+            }
+        }
+
+        obj.getComplaint().setComplaintDateTime(Complaint.getDTString(new Date()));
+
+        try {
+            writer.reset();
+            writer.writeUnshared(obj);
+        }catch (Exception e){ }
+
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                informComplaint(obj);
+            }
+        }).start();
+    }
+
+    private void informComplaint(ComplaintMessage obj) {
+        StaffClientMonitor scm = Server.monitorStaffs.get(obj.getComplaint().getOrganizationID());
+        if(scm==null) {
+            System.out.println("Admin Offline");
+            return;
+        }
+
+        scm.pushComplaint(obj.getComplaint());
     }
 
     private void updateAccount(AccountUpdationMessage obj) {

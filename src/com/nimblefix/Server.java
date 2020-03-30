@@ -2,6 +2,7 @@ package com.nimblefix;
 
 import com.nimblefix.Clients.StaffClientMonitor;
 import com.nimblefix.core.DBClass;
+import com.nimblefix.core.SMTPClass;
 import com.nimblefix.core.ServerConfiguration;
 
 import java.io.*;
@@ -11,6 +12,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class Server {
     public static DBClass dbClass;
+    public static SMTPClass smtpClass;
 
     boolean isListening = false;
     final int DEF_PORT_NO = 2180;
@@ -39,7 +41,7 @@ public class Server {
 
         otp_Hashmap = new ConcurrentHashMap<String, String>();
 
-        // TODO : Initialize all the user HashMaps
+        // TODO : Initialize all the staffuser HashMaps
         monitorStaffs = new ConcurrentHashMap<String, StaffClientMonitor>();
         //TODO:-----------------------------------
 
@@ -68,6 +70,7 @@ public class Server {
             @Override
             public void run() {
                 dbClass = new DBClass(serverParam.dBServer,serverParam.dBName,serverParam.dBUser,serverParam.dBPassword);
+                smtpClass = new SMTPClass(serverParam.smtphost , serverParam.smtpport,serverParam.smtpuser,serverParam.smtppassword, serverParam.smtpauth);
                 System.out.println("Starting server");
                 int port;
                 try { port = Integer.parseInt(p); }

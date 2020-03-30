@@ -1,7 +1,7 @@
 <component name="libraryTable">
-  <library name="simple-java-mail-6.0.3">
+  <library name="javamail-1.4.5">
     <CLASSES>
-      <root url="jar://E:/simple-java-mail-6.0.3.jar!/" />
+      <root url="jar://E:/javamail-1.4.5.jar/javamail-1.4.5.jar!/" />
     </CLASSES>
     <JAVADOC />
     <SOURCES />

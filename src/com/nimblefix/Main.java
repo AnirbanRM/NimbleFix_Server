@@ -19,12 +19,11 @@ public class Main extends Application {
         FXMLLoader loader = new FXMLLoader(getClass().getResource("DashboardUI.fxml"));
         Parent root = loader.load();
         primaryStage.setTitle("Dashboard");
-        primaryStage.setScene(new Scene(root, 1020, 520));
+        primaryStage.setScene(new Scene(root, 1020, 540));
         primaryStage.setResizable(false);
         primaryStage.show();
         ((DashboardController)loader.getController()).curr_stg = primaryStage;
         ((DashboardController)loader.getController()).setSaveConfig();
-
     }
 
     public static void main(String[] args) {

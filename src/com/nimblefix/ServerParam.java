@@ -8,14 +8,24 @@ public class ServerParam {
     String dBName;
     String dBUser;
     String dBPassword;
+    String smtphost;
+    String smtpuser;
+    String smtppassword;
+    String smtpport;
+    int smtpauth;
 
-    ServerParam(String workingDirectory, int portNo, String dBServer,String dBName,String dBUser, String dBPassword){
+    ServerParam(String workingDirectory, int dbportNo, String dBServer,String dBName,String dBUser, String dBPassword, String smtphost,String smtpuser,String smtppassword, String smtpport, int smtpauth){
         this.dBName=dBName;
         this.dBPassword=dBPassword;
         this.dBServer=dBServer;
         this.dBUser = dBUser;
-        this.portNo=portNo;
+        this.portNo=dbportNo;
         this.workingDirectory=workingDirectory;
+        this.smtpauth = smtpauth;
+        this.smtphost = smtphost;
+        this.smtppassword = smtppassword;
+        this.smtpport = smtpport;
+        this.smtpuser = smtpuser;
     }
 
     public String getWorkingDirectory() {
@@ -46,7 +56,7 @@ public class ServerParam {
         this.workingDirectory = workingDirectory;
     }
 
-    public void setPortNo(int portNo) {
+    public void setDbPortNo(int portNo) {
         this.portNo = portNo;
     }
 
@@ -64,5 +74,49 @@ public class ServerParam {
 
     public void setdBPassword(String dBPassword) {
         this.dBPassword = dBPassword;
+    }
+
+    public String getSmtphost() {
+        return smtphost;
+    }
+
+    public String getSmtpuser() {
+        return smtpuser;
+    }
+
+    public String getSmtppassword() {
+        return smtppassword;
+    }
+
+    public String getSmtpport() {
+        return smtpport;
+    }
+
+    public int getSmtpauth() {
+        return smtpauth;
+    }
+
+    public void setPortNo(int portNo) {
+        this.portNo = portNo;
+    }
+
+    public void setSmtphost(String smtphost) {
+        this.smtphost = smtphost;
+    }
+
+    public void setSmtpuser(String smtpuser) {
+        this.smtpuser = smtpuser;
+    }
+
+    public void setSmtppassword(String smtppassword) {
+        this.smtppassword = smtppassword;
+    }
+
+    public void setSmtpport(String smtpport) {
+        this.smtpport = smtpport;
+    }
+
+    public void setSmtpauth(int smtpauth) {
+        this.smtpauth = smtpauth;
     }
 }

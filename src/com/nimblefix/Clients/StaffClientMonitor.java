@@ -61,9 +61,16 @@ public class StaffClientMonitor {
         reader_thread.start();
     }
 
+    public void pushComplaint(Complaint complaint){
+        try {
+            WRITER.reset();
+            WRITER.writeUnshared(new ComplaintMessage(complaint));
+        }catch (Exception e){ e.printStackTrace(); }
+    }
+
     private void handle(Object object){
         if(object instanceof ComplaintMessage){
-            handleComplaint((Complaint)((ComplaintMessage) object).getComplaint());
+            ;//handleComplaint((Complaint)((ComplaintMessage) object).getComplaint());
 
             //TODO : Handle different objects
 
@@ -74,16 +81,11 @@ public class StaffClientMonitor {
 
     private void handleComplaint(Complaint complaint) {
 
-        StaffClientMonitor scm = Server.monitorStaffs.get(complaint.getOrganizationID());
-        if(scm==null){
-            System.out.println("Staff not online");
-            return;
-        }
-
         try {
-            scm.WRITER.writeUnshared(new ComplaintMessage(complaint));
+            WRITER.writeUnshared(new ComplaintMessage(complaint));
         }catch (Exception e){ e.printStackTrace(); }
     }
+
 
     private void clear() {
         System.out.println("Clearing Monitoring client");
