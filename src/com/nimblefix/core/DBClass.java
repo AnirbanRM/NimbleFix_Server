@@ -50,4 +50,14 @@ public class DBClass {
         }catch(Exception e) { System.out.println(e.getMessage()); }
     }
 
+    public long executequeryUpdateReturnID(String query) {
+        Statement stmt;
+        try {
+            stmt = con.createStatement();
+            stmt.executeUpdate(query,Statement.RETURN_GENERATED_KEYS);
+            ResultSet rs = stmt.getGeneratedKeys();
+            rs.next();
+            return rs.getLong(1);
+        }catch(Exception e) { System.out.println(e.getMessage()); return -1; }
+    }
 }

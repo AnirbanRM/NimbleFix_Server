@@ -8,6 +8,7 @@ import com.nimblefix.core.Organization;
 
 import java.io.*;
 import java.net.Socket;
+import java.util.ArrayList;
 
 public class StaffClientMonitor {
 
@@ -69,14 +70,34 @@ public class StaffClientMonitor {
     }
 
     private void handle(Object object){
-        if(object instanceof ComplaintMessage){
-            ;//handleComplaint((Complaint)((ComplaintMessage) object).getComplaint());
-
+        if(object instanceof ComplaintMessage) {
+            if(((ComplaintMessage) object).getBody().substring(0,3).equals("GET"))
+                sendPastComplaints((ComplaintMessage)object);
+            else
+                handleComplaint((Complaint) ((ComplaintMessage) object).getComplaint());
+        }
             //TODO : Handle different objects
 
+    }
 
+    private void sendPastComplaints(ComplaintMessage object) {
+        File compDIR = new File(serverParam.getWorkingDirectory()+"/userdata/"+userID+"/complaints/"+organization.getOui()+"/");
+        if(compDIR.exists()){
+            File orgfiles[] = compDIR.listFiles();
+            for(File f : orgfiles){
+                    try {
+                        FileInputStream fi = new FileInputStream(f);
+                        Complaint comp = (Complaint) new ObjectInputStream(fi).readObject();
+                        object.getComplaints().add(comp);
+                        fi.close();
+                    }catch (Exception e){ System.out.println(e.getMessage().toString()); }
+                }
+            }
 
-        }
+        try {
+            WRITER.reset();
+            WRITER.writeUnshared(object);
+        } catch (Exception e) { }
     }
 
     private void handleComplaint(Complaint complaint) {

@@ -10,11 +10,9 @@ import com.nimblefix.core.InventoryItem;
 import com.nimblefix.core.Organization;
 import com.nimblefix.core.OrganizationalFloors;
 import javafx.animation.ScaleTransition;
+import javafx.scene.layout.Pane;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
+import java.io.*;
 import java.net.Socket;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -120,7 +118,7 @@ public class UserClient {
                         for (OrganizationalFloors ofl : o.getFloors()) {
                             InventoryItem i = ofl.getInventories().get(obj.getComplaint().getInventoryID());
                             if (i != null) {
-                                obj.getComplaint().setComplaintID("COMP000000000");
+                                obj = pushToDB(obj);
                                 obj.getComplaint().setProblemStatus(Complaint.Status.UNFIXED);
                                 obj.setBody("SUCCESS");
                             }
@@ -138,22 +136,50 @@ public class UserClient {
             writer.writeUnshared(obj);
         }catch (Exception e){ }
 
+        ComplaintMessage final_obj = obj;
         new Thread(new Runnable() {
             @Override
             public void run() {
-                informComplaint(obj);
+                informComplaint(final_obj);
             }
         }).start();
     }
 
-    private void informComplaint(ComplaintMessage obj) {
-        StaffClientMonitor scm = Server.monitorStaffs.get(obj.getComplaint().getOrganizationID());
-        if(scm==null) {
-            System.out.println("Admin Offline");
-            return;
-        }
+    private ComplaintMessage pushToDB(ComplaintMessage obj) {
 
-        scm.pushComplaint(obj.getComplaint());
+        Complaint complaint = obj.getComplaint();
+        long record_id = Server.dbClass.executequeryUpdateReturnID("insert into complaints(ComplaintDateTime,OrganizationID,InventoryID,UserID,UserRemarks,ProblemStatus) values('"+complaint.getComplaintDateTime()+"','"+complaint.getOrganizationID()+"','"+complaint.getInventoryID()+"','"+complaint.getUserID()+"','"+complaint.getUserRemarks()+"','UNFIXED');");
+        complaint.setDbID(String.valueOf(record_id));
+        return obj;
+    }
+
+    private void informComplaint(ComplaintMessage obj) {
+
+        //Push if online
+        StaffClientMonitor scm = Server.monitorStaffs.get(obj.getComplaint().getOrganizationID());
+        if(scm!=null)
+            scm.pushComplaint(obj.getComplaint());
+
+        //Fetch owner from db for Organization Owner
+        String owner = "";
+        ResultSet rs = Server.dbClass.executequeryView("SELECT * from organizations where orgid = '"+obj.getComplaint().getOrganizationID()+"';");
+        try {
+            while (rs.next())
+                owner = rs.getString("owner");
+        }catch (SQLException e){ }
+
+        File compDIR = new File(serverParam.getWorkingDirectory()+"/userdata/"+owner+"/complaints/"+obj.getComplaint().getOrganizationID());
+        if(!compDIR.exists())
+            compDIR.mkdirs();
+
+        try {
+            FileOutputStream fos = new FileOutputStream(new File(compDIR+"/"+obj.getComplaint().getComplaintID()));
+            ObjectOutputStream oos = new ObjectOutputStream(fos);
+            oos.writeUnshared(obj.getComplaint());
+            fos.close();
+        } catch (Exception e) { System.out.println(e.getMessage()); }
+
+        //Server.smtpClass.sendMail("NimbleFix Alert",,"New Complaint ("+")");
     }
 
     private void updateAccount(AccountUpdationMessage obj) {
