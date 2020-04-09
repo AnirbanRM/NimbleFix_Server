@@ -2,10 +2,15 @@ package com.nimblefix.Clients;
 
 import com.nimblefix.ControlMessages.MonitorMessage;
 import com.nimblefix.ControlMessages.OrganizationsExchangerMessage;
+import com.nimblefix.ControlMessages.WorkerExchangeMessage;
 import com.nimblefix.Server;
 import com.nimblefix.ServerParam;
 import com.nimblefix.core.Organization;
+import com.nimblefix.core.Worker;
+import com.sun.corba.se.spi.orbutil.threadpool.Work;
 import com.sun.istack.internal.Nullable;
+import javafx.application.Platform;
+import javafx.scene.layout.Pane;
 
 import java.io.*;
 import java.net.Socket;
@@ -63,6 +68,69 @@ public class StaffClient {
         else if(object instanceof MonitorMessage){
             handleMonitor((MonitorMessage) object);
         }
+        else if(object instanceof WorkerExchangeMessage){
+            if(((WorkerExchangeMessage)object).getBody().equals("UPDATE"))
+                handleWorkerUpdate((WorkerExchangeMessage)object);
+            else if(((WorkerExchangeMessage)object).getBody().equals("FETCH"))
+                pushWorkerInfo((WorkerExchangeMessage)object);
+        }
+    }
+
+    private void pushWorkerInfo(WorkerExchangeMessage object) {
+        ArrayList<Worker> workers = new ArrayList<>();
+        WorkerExchangeMessage wem = new WorkerExchangeMessage(null,null, workers);
+        wem.setBody("FETCHRESULT");
+
+        File dir = new File(serverParam.getWorkingDirectory()+"/userdata/"+ userID+ "/Workers/" + object.getOrganizationID());
+        if(dir.exists()){
+            File[] files = dir.listFiles();
+            for(File i : files){
+                try {
+                    FileInputStream fis = new FileInputStream(i);
+                    ObjectInputStream ois = new ObjectInputStream(fis);
+                    Worker w = (Worker) ois.readObject();
+                     if(w!=null)
+                         wem.getWorkers().add(w);
+                     fis.close();
+                }catch (Exception e){ }
+            }
+        }
+
+        try{
+            WRITER.reset();
+            WRITER.writeUnshared(wem);
+        }catch (Exception e){ }
+    }
+
+    private void handleWorkerUpdate(WorkerExchangeMessage wem) {
+        WorkerExchangeMessage workerExchangeMessage = new WorkerExchangeMessage(null,null,null);
+
+        File dir = new File(serverParam.getWorkingDirectory()+"/userdata/"+ userID+"/Workers/");
+        File workerDir = new File(dir.getPath()+"/"+wem.getOrganizationID());
+        if(!workerDir.exists())
+            workerDir.mkdirs();
+
+        for(File i : workerDir.listFiles())
+            i.delete();
+
+        workerExchangeMessage.setBody("SUCCESS");
+        try {
+            for(Worker w : wem.getWorkers()){
+                File workerfile = new File(workerDir.getPath() +"/"+w.getEmpID());
+                FileOutputStream fos = new FileOutputStream(workerfile);
+                ObjectOutputStream oos = new ObjectOutputStream(fos);
+                oos.writeUnshared(w);
+                fos.close();
+            }
+        }catch (Exception e){
+            workerExchangeMessage.setBody("FAILURE");
+            System.out.println(e.getMessage());
+        }
+
+        try {
+            WRITER.reset();
+            WRITER.writeUnshared(workerExchangeMessage);
+        }catch (Exception e){ }
     }
 
     private void deleteOrganization(OrganizationsExchangerMessage organizationsExchangerMessage) {

@@ -1,10 +1,12 @@
 package com.nimblefix.Clients;
 
 import com.nimblefix.ControlMessages.ComplaintMessage;
+import com.nimblefix.ControlMessages.WorkerExchangeMessage;
 import com.nimblefix.Server;
 import com.nimblefix.ServerParam;
 import com.nimblefix.core.Complaint;
 import com.nimblefix.core.Organization;
+import com.nimblefix.core.Worker;
 
 import java.io.*;
 import java.net.Socket;
@@ -73,8 +75,12 @@ public class StaffClientMonitor {
         if(object instanceof ComplaintMessage) {
             if(((ComplaintMessage) object).getBody().substring(0,3).equals("GET"))
                 sendPastComplaints((ComplaintMessage)object);
-            else
-                handleComplaint((Complaint) ((ComplaintMessage) object).getComplaint());
+            else if(((ComplaintMessage) object).getBody().equals("ASSIGNMENT"))
+                handleAssignment((ComplaintMessage) object);
+        }
+        else if(object instanceof WorkerExchangeMessage){
+            if(((WorkerExchangeMessage)object).getBody().equals("FETCH"))
+                pushWorkerInfo((WorkerExchangeMessage) object);
         }
             //TODO : Handle different objects
 
@@ -100,13 +106,27 @@ public class StaffClientMonitor {
         } catch (Exception e) { }
     }
 
-    private void handleComplaint(Complaint complaint) {
+    private void handleAssignment(ComplaintMessage complaint) {
+        Server.dbClass.executequeryUpdate("update complaints set AssignedBy = '"+complaint.getComplaint().getAssignedBy()+"', AssignedTo = '"+complaint.getComplaint().getAssignedTo()+"', AssignedDateTime = '"+complaint.getComplaint().getAssignedDateTime()+"', AdminComments = '"+complaint.getComplaint().getAdminComments()+"' where ID = "+complaint.getComplaint().getDbID()+";");
+        sendEmailforAssignment(complaint);
+        complaint.setBody("ASSIGNMENT_SUCCESS");
 
         try {
-            WRITER.writeUnshared(new ComplaintMessage(complaint));
+            WRITER.reset();
+            WRITER.writeUnshared(complaint);
         }catch (Exception e){ e.printStackTrace(); }
     }
 
+    private void sendEmailforAssignment(ComplaintMessage complaint){
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    Server.smtpClass.sendMail(complaint.getComplaint().getAssignedBy(), complaint.getComplaint().getAssignedTo(), "New Assignment", "New Job assigned \n" + complaint.getComplaint().getOrganizationID() + "\n" + complaint.getComplaint().getComplaintID() + "\n" + complaint.getComplaint().getInventoryID());
+                }catch (Exception e){ }
+            }
+        }).start();
+    }
 
     private void clear() {
         System.out.println("Clearing Monitoring client");
@@ -116,5 +136,31 @@ public class StaffClientMonitor {
         try{ READER.close(); READER = null; }catch (Exception e){}
         try{ SOCKET.close(); SOCKET = null; }catch (Exception e){}
         try{ this.finalize(); }catch (Throwable e){}
+    }
+
+    private void pushWorkerInfo(WorkerExchangeMessage object) {
+        ArrayList<Worker> workers = new ArrayList<>();
+        WorkerExchangeMessage wem = new WorkerExchangeMessage(null,null, workers);
+        wem.setBody("FETCHRESULT");
+
+        File dir = new File(serverParam.getWorkingDirectory()+"/userdata/"+ userID+ "/Workers/" + object.getOrganizationID());
+        if(dir.exists()){
+            File[] files = dir.listFiles();
+            for(File i : files){
+                try {
+                    FileInputStream fis = new FileInputStream(i);
+                    ObjectInputStream ois = new ObjectInputStream(fis);
+                    Worker w = (Worker) ois.readObject();
+                    if(w!=null)
+                        wem.getWorkers().add(w);
+                    fis.close();
+                }catch (Exception e){ }
+            }
+        }
+
+        try{
+            WRITER.reset();
+            WRITER.writeUnshared(wem);
+        }catch (Exception e){ }
     }
 }
