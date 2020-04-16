@@ -1,5 +1,6 @@
 package com.nimblefix.Clients;
 
+import com.nimblefix.ControlMessages.MaintainenceMessage;
 import com.nimblefix.ControlMessages.MonitorMessage;
 import com.nimblefix.ControlMessages.OrganizationsExchangerMessage;
 import com.nimblefix.ControlMessages.WorkerExchangeMessage;
@@ -73,6 +74,31 @@ public class StaffClient {
                 handleWorkerUpdate((WorkerExchangeMessage)object);
             else if(((WorkerExchangeMessage)object).getBody().equals("FETCH"))
                 pushWorkerInfo((WorkerExchangeMessage)object);
+        }
+        else if(object instanceof MaintainenceMessage){
+            handleMaintainenceMessage((MaintainenceMessage)object);
+        }
+    }
+
+    private void handleMaintainenceMessage(MaintainenceMessage message) {
+        if(message.getBody().equals("CONFIG")){
+            File f = new File(serverParam.getWorkingDirectory()+"/userdata/"+ userID+ "/Maintainence");
+            if(!f.exists()) f.mkdirs();
+            f = new File(f.getPath()+"/"+message.getOui());
+            if(f.exists())f.delete();
+            message.setBody("SUCCESS");
+            try{
+                FileOutputStream fos = new FileOutputStream(f);
+                ObjectOutputStream oos = new ObjectOutputStream(fos);
+                oos.writeUnshared(message.getMaintainenceMap());
+                fos.close();
+            }catch (Exception e){ message.setBody("FAILURE"); }
+            message.setMaintainenceMap(null);
+
+            try {
+                WRITER.reset();
+                WRITER.writeUnshared(message);
+            }catch (Exception e){ }
         }
     }
 

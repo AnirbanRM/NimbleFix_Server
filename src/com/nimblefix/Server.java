@@ -89,7 +89,7 @@ public class Server {
                             public void run() {
                                 try {
                                     ESocket s = new ESocket(socket,serverParam);
-                                } catch (IOException e) { e.printStackTrace(); }
+                                } catch (IOException e) { }
                             }
                         });
                         newClient.start();

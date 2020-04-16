@@ -109,12 +109,25 @@ public class StaffClientMonitor {
     private void handleAssignment(ComplaintMessage complaint) {
         Server.dbClass.executequeryUpdate("update complaints set AssignedBy = '"+complaint.getComplaint().getAssignedBy()+"', AssignedTo = '"+complaint.getComplaint().getAssignedTo()+"', AssignedDateTime = '"+complaint.getComplaint().getAssignedDateTime()+"', AdminComments = '"+complaint.getComplaint().getAdminComments()+"' where ID = "+complaint.getComplaint().getDbID()+";");
         sendEmailforAssignment(complaint);
+        updateComplaintinFS(complaint);
         complaint.setBody("ASSIGNMENT_SUCCESS");
 
         try {
             WRITER.reset();
             WRITER.writeUnshared(complaint);
         }catch (Exception e){ e.printStackTrace(); }
+    }
+
+    private void updateComplaintinFS(ComplaintMessage complaint) {
+        File compFile = new File(serverParam.getWorkingDirectory()+"/userdata/"+ userID +"/complaints/"+complaint.getComplaint().getOrganizationID() + "/" + complaint.getComplaint().getComplaintID());
+        compFile.delete();
+
+        try {
+            FileOutputStream fos = new FileOutputStream(compFile);
+            ObjectOutputStream oos = new ObjectOutputStream(fos);
+            oos.writeUnshared(complaint.getComplaint());
+            fos.close();
+        } catch (Exception e) { System.out.println(e.getMessage()); }
     }
 
     private void sendEmailforAssignment(ComplaintMessage complaint){
