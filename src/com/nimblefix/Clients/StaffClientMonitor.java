@@ -1,16 +1,34 @@
 package com.nimblefix.Clients;
 
 import com.nimblefix.ControlMessages.ComplaintMessage;
+import com.nimblefix.ControlMessages.PendingWorkMessage;
 import com.nimblefix.ControlMessages.WorkerExchangeMessage;
 import com.nimblefix.Server;
 import com.nimblefix.ServerParam;
-import com.nimblefix.core.Complaint;
-import com.nimblefix.core.Organization;
-import com.nimblefix.core.Worker;
+import com.nimblefix.core.*;
+import com.sun.xml.internal.bind.v2.runtime.unmarshaller.LocatorEx;
+import javafx.application.Platform;
+import javafx.embed.swing.SwingFXUtils;
+import javafx.scene.SnapshotParameters;
+import javafx.scene.canvas.Canvas;
+import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.image.Image;
+import javafx.scene.image.WritableImage;
+import javafx.scene.paint.Color;
+import sun.awt.image.ToolkitImage;
 
+import javax.imageio.ImageIO;
+import javax.imageio.stream.ImageInputStream;
+import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.awt.image.RenderedImage;
 import java.io.*;
 import java.net.Socket;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 public class StaffClientMonitor {
 
@@ -82,8 +100,31 @@ public class StaffClientMonitor {
             if(((WorkerExchangeMessage)object).getBody().equals("FETCH"))
                 pushWorkerInfo((WorkerExchangeMessage) object);
         }
+        else if(object instanceof PendingWorkMessage){
+            if(((PendingWorkMessage)object).getBody().equals("FETCH"))
+                pushPendingWorkData((PendingWorkMessage) object);
+        }
             //TODO : Handle different objects
 
+    }
+
+    private void pushPendingWorkData(PendingWorkMessage pendingWorkMessage) {
+        ResultSet rs = Server.dbClass.executequeryView("select COUNT(AssignedTo) as Count,AssignedTo from complaints where OrganizationID = '"+pendingWorkMessage.getOrganizationID()+"' and ProblemStatus = 'UNFIXED';");
+        Map<String,Integer> map = new HashMap<String,Integer>();
+
+        try {
+            while (rs.next()) {
+                map.put(rs.getString("AssignedTo"),Integer.parseInt(rs.getString("Count")));
+            }
+        }catch (SQLException e){ }
+
+        pendingWorkMessage.setPendingTasks(map);
+        pendingWorkMessage.setBody("RESULT");
+
+        try {
+            WRITER.reset();
+            WRITER.writeUnshared(pendingWorkMessage);
+        } catch (Exception e) { }
     }
 
     private void sendPastComplaints(ComplaintMessage object) {
@@ -131,13 +172,11 @@ public class StaffClientMonitor {
     }
 
     private void sendEmailforAssignment(ComplaintMessage complaint){
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    Server.smtpClass.sendMail(complaint.getComplaint().getAssignedBy(), complaint.getComplaint().getAssignedTo(), "New Assignment", "New Job assigned \n" + complaint.getComplaint().getOrganizationID() + "\n" + complaint.getComplaint().getComplaintID() + "\n" + complaint.getComplaint().getInventoryID());
-                }catch (Exception e){ }
-            }
+        new Thread(() -> {
+            try {
+                String body = SMTPClass.getWorkNotificationMessage(complaint.getInventoryItem() , complaint.getFloorID() ,complaint.getComplaint());
+                Server.smtpClass.sendMail(complaint.getComplaint().getAssignedBy(), complaint.getComplaint().getAssignedTo(), "New Assignment", body,complaint.getLocation_image());
+            } catch (Exception e) { e.printStackTrace(); }
         }).start();
     }
 

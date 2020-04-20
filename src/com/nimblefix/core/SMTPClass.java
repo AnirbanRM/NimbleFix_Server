@@ -1,10 +1,17 @@
 package com.nimblefix.core;
 
 
+import javax.activation.DataHandler;
 import javax.mail.*;
 import javax.mail.internet.InternetAddress;
+import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMessage;
+import javax.mail.internet.MimeMultipart;
+import javax.mail.util.ByteArrayDataSource;
+import java.awt.image.DataBufferByte;
+import java.io.File;
 import java.io.Serializable;
+import java.net.URI;
 import java.util.Properties;
 
 public class SMTPClass implements Serializable {
@@ -73,10 +80,45 @@ public class SMTPClass implements Serializable {
         Transport.send(message);
     }
 
+    public void sendMail(String from, String toEmail, String subject, String body, byte[] imageBytes) throws Exception{
+        Message message = new MimeMessage(session);
+        message.setFrom(new InternetAddress(user,from));
+        message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(toEmail));
+        message.setSubject(subject);
+
+        MimeMultipart fullBody = new MimeMultipart();
+
+        BodyPart text = new MimeBodyPart();
+        text.setContent(body, "text/html");
+        fullBody.addBodyPart(text);
+
+        BodyPart image = new MimeBodyPart();
+        ByteArrayDataSource bads = new ByteArrayDataSource(imageBytes, "image/png");
+        image.setDataHandler(new DataHandler(bads));
+        image.setFileName("./location.png");
+        image.setHeader("Content-ID", "image");
+        fullBody.addBodyPart(image);
+
+        message.setContent(fullBody);
+        Transport.send(message);
+    }
+
     public boolean isValid() {
         try {
             sendMail(user, user, "TestMail", "This is a test mail from NimbleFix");
             return true;
         }catch (Exception e){ return false;}
+    }
+
+    public static String getWorkNotificationMessage(InventoryItem inventoryItem, String floorID, Complaint complaint){
+        return
+        "<b>Dear "+complaint.getAssignedTo()+"</b>,\n"
+                +"<p>You have been assigned the responsibility <b>(Complaint No. "+complaint.getComplaintID()+")</b> of fixing <b>"+inventoryItem.getTitle()+" ("+inventoryItem.getId()+") - "+floorID+"</b> at the earliest.</p>"
+                +"<p> The complaint received from client is as follows : \n"+complaint.getUserRemarks()+"\n\n</p>"
+                +"<p> Administrator comment is as follows : \n"+complaint.getAdminComments()+"\n\n</p>"
+                +"<p>The location of the site has been attached with this mail.</p>"
+                +"\n\n<p>Regards."
+                +"<p><b>"+complaint.getAssignedBy()+"</b></p>"
+                +"<p><b>"+inventoryItem.getParentOrganization().getOrganization_Name()+"</b></p>";
     }
 }

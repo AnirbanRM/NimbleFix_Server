@@ -1,11 +1,10 @@
 package com.nimblefix.Clients;
 
-import com.nimblefix.ControlMessages.MaintainenceMessage;
-import com.nimblefix.ControlMessages.MonitorMessage;
-import com.nimblefix.ControlMessages.OrganizationsExchangerMessage;
-import com.nimblefix.ControlMessages.WorkerExchangeMessage;
+import com.nimblefix.ControlMessages.*;
 import com.nimblefix.Server;
 import com.nimblefix.ServerParam;
+import com.nimblefix.core.DBClass;
+import com.nimblefix.core.InventoryItemHistory;
 import com.nimblefix.core.Organization;
 import com.nimblefix.core.Worker;
 import com.sun.corba.se.spi.orbutil.threadpool.Work;
@@ -77,6 +76,48 @@ public class StaffClient {
         }
         else if(object instanceof MaintainenceMessage){
             handleMaintainenceMessage((MaintainenceMessage)object);
+        }
+        else if(object instanceof HistoryMessage){
+            handleHistoryMessage((HistoryMessage)object);
+        }
+
+    }
+
+    private void handleHistoryMessage(HistoryMessage message) {
+        if(message.getBody().equals("FETCH")) {
+            if(message.getBody()!=null) {
+                HistoryMessage newMsg = new HistoryMessage(message.getOui());
+                ResultSet resultSet = Server.dbClass.executequeryView("SELECT * from complaints where OrganizationID = '"+ message.getOui() +"';");
+                try {
+
+                    while (resultSet.next()){
+                        InventoryItemHistory currentItemHistory = new InventoryItemHistory(resultSet.getString("OrganizationID"),resultSet.getString("InventoryID"));
+                        currentItemHistory.setEventID(resultSet.getString("ID"));
+                        currentItemHistory.setAssignedTo(resultSet.getString("AssignedTo"));
+
+                        currentItemHistory.setWorkDateTime(resultSet.getString("fixedDateTime"));
+                        currentItemHistory.setEventType(InventoryItemHistory.Type.FIXED);
+                        if(currentItemHistory.getWorkDateTime()==null) {
+                            currentItemHistory.setWorkDateTime(resultSet.getString("assignedDateTime"));
+                            currentItemHistory.setEventType(InventoryItemHistory.Type.ASSIGNED);
+                            if(currentItemHistory.getWorkDateTime()==null) {
+                                currentItemHistory.setWorkDateTime(resultSet.getString("complaintDateTime"));
+                                currentItemHistory.setEventType(InventoryItemHistory.Type.REGISTERED);
+                            }
+                        }
+
+                        newMsg.addHistory(resultSet.getString("InventoryID"),currentItemHistory);
+                    }
+
+                }catch (Exception e){ }
+
+                newMsg.setBody("RESULT");
+
+                try{
+                    WRITER.reset();
+                    WRITER.writeUnshared(newMsg);
+                }catch (Exception e){}
+            }
         }
     }
 
