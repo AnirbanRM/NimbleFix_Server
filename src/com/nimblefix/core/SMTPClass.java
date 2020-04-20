@@ -110,7 +110,7 @@ public class SMTPClass implements Serializable {
         }catch (Exception e){ return false;}
     }
 
-    public static String getWorkNotificationMessage(InventoryItem inventoryItem, String floorID, Complaint complaint){
+    public static String getWorkNotificationMessage(CompactInventoryItem inventoryItem, String floorID, Complaint complaint){
         return
         "<b>Dear "+complaint.getAssignedTo()+"</b>,\n"
                 +"<p>You have been assigned the responsibility <b>(Complaint No. "+complaint.getComplaintID()+")</b> of fixing <b>"+inventoryItem.getTitle()+" ("+inventoryItem.getId()+") - "+floorID+"</b> at the earliest.</p>"
@@ -119,6 +119,6 @@ public class SMTPClass implements Serializable {
                 +"<p>The location of the site has been attached with this mail.</p>"
                 +"\n\n<p>Regards."
                 +"<p><b>"+complaint.getAssignedBy()+"</b></p>"
-                +"<p><b>"+inventoryItem.getParentOrganization().getOrganization_Name()+"</b></p>";
+                +"<p><b>"+inventoryItem.getOrganization_Name()+"</b></p>";
     }
 }
