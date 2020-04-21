@@ -94,7 +94,7 @@ public class StaffClientMonitor {
     }
 
     private void pushPendingWorkData(PendingWorkMessage pendingWorkMessage) {
-        ResultSet rs = Server.dbClass.executequeryView("select COUNT(AssignedTo) as Count,AssignedTo from complaints where OrganizationID = '"+pendingWorkMessage.getOrganizationID()+"' and ProblemStatus = 'UNFIXED';");
+        ResultSet rs = Server.dbClass.executequeryView("select OrganizationID,ProblemStatus,AssignedTo,COUNT(*) as Count from complaints group by AssignedTo having OrganizationID = '"+pendingWorkMessage.getOrganizationID()+"' and ProblemStatus = 'UNFIXED';");
         Map<String,Integer> map = new HashMap<String,Integer>();
 
         try {
