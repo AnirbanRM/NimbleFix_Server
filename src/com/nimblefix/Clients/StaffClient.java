@@ -3,10 +3,7 @@ package com.nimblefix.Clients;
 import com.nimblefix.ControlMessages.*;
 import com.nimblefix.Server;
 import com.nimblefix.ServerParam;
-import com.nimblefix.core.DBClass;
-import com.nimblefix.core.InventoryItemHistory;
-import com.nimblefix.core.Organization;
-import com.nimblefix.core.Worker;
+import com.nimblefix.core.*;
 import com.sun.corba.se.spi.orbutil.threadpool.Work;
 import com.sun.istack.internal.Nullable;
 import javafx.application.Platform;
@@ -17,6 +14,8 @@ import java.net.Socket;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 public class StaffClient {
     Socket SOCKET;
@@ -136,6 +135,24 @@ public class StaffClient {
             }catch (Exception e){ message.setBody("FAILURE"); }
             message.setMaintainenceMap(null);
 
+            try {
+                WRITER.reset();
+                WRITER.writeUnshared(message);
+            }catch (Exception e){ }
+        }
+
+        else if(message.getBody().equals("FETCH")){
+            File f = new File(serverParam.getWorkingDirectory()+"/userdata/"+ userID+ "/Maintainence/"+message.getOui());
+            message.setBody("FETCHRESULT");
+            if(f.exists()){
+                try{
+                    FileInputStream fis = new FileInputStream(f);
+                    ObjectInputStream ois = new ObjectInputStream(fis);
+                    Object o = ois.readObject();
+                    fis.close();
+                    message.setMaintainenceMap((Map<String, InventoryMaintainenceClass>) o);
+                }catch (Exception e){ }
+            }
             try {
                 WRITER.reset();
                 WRITER.writeUnshared(message);

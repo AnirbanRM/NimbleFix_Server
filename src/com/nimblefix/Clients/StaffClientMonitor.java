@@ -1,6 +1,7 @@
 package com.nimblefix.Clients;
 
 import com.nimblefix.ControlMessages.ComplaintMessage;
+import com.nimblefix.ControlMessages.MaintainenceMessage;
 import com.nimblefix.ControlMessages.PendingWorkMessage;
 import com.nimblefix.ControlMessages.WorkerExchangeMessage;
 import com.nimblefix.Server;
@@ -89,8 +90,30 @@ public class StaffClientMonitor {
             if(((PendingWorkMessage)object).getBody().equals("FETCH"))
                 pushPendingWorkData((PendingWorkMessage) object);
         }
-            //TODO : Handle different objects
+        else if(object instanceof MaintainenceMessage){
+            if(((MaintainenceMessage)object).getBody().equals("FETCH"))
+                handleMaintainenceMessage((MaintainenceMessage) object);
+        }
+    }
 
+    private void handleMaintainenceMessage(MaintainenceMessage message) {
+        if(message.getBody().equals("FETCH")){
+            File f = new File(serverParam.getWorkingDirectory()+"/userdata/"+ userID+ "/Maintainence/"+message.getOui());
+            message.setBody("FETCHRESULT");
+            if(f.exists()){
+                try{
+                    FileInputStream fis = new FileInputStream(f);
+                    ObjectInputStream ois = new ObjectInputStream(fis);
+                    Object o = ois.readObject();
+                    fis.close();
+                    message.setMaintainenceMap((Map<String, InventoryMaintainenceClass>) o);
+                }catch (Exception e){ }
+            }
+            try {
+                WRITER.reset();
+                WRITER.writeUnshared(message);
+            }catch (Exception e){ }
+        }
     }
 
     private void pushPendingWorkData(PendingWorkMessage pendingWorkMessage) {
