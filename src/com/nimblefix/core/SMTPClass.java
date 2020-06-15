@@ -121,4 +121,15 @@ public class SMTPClass implements Serializable {
                 +"<p><b>"+complaint.getAssignedBy()+"</b></p>"
                 +"<p><b>"+inventoryItem.getOrganization_Name()+"</b></p>";
     }
+
+    public static String getMaintainenceNotificationMessage(CompactInventoryItem inventoryItem, String floorID, MaintainenceAssignedData data){
+        return
+                "<b>Dear "+data.getAssignedTo()+"</b>,\n"
+                        +"<p>You have been assigned the responsibility of periodic maintenance of <b>"+inventoryItem.getTitle()+" ("+inventoryItem.getId()+") - "+floorID+"</b> at the earliest.</p>"
+                        +"<p> Administrator comment is as follows : \n"+data.getAdminComments()+"\n\n</p>"
+                        +"<p>The location of the site has been attached with this mail.</p>"
+                        +"\n\n<p>Regards."
+                        +"<p><b>"+data.getAssignedBy()+"</b></p>"
+                        +"<p><b>"+inventoryItem.getOrganization_Name()+"</b></p>";
+    }
 }

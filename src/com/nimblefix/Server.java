@@ -24,6 +24,7 @@ public class Server {
 
     //HashMap for OTP
     public static ConcurrentHashMap<String, String> otp_Hashmap;
+    public static ConcurrentHashMap<String, String> emp_otp_Hashmap;
     //----------------------------------------------------
 
     //HashMaps for different sockets
@@ -40,6 +41,7 @@ public class Server {
         this.serverParam=serverParam;
 
         otp_Hashmap = new ConcurrentHashMap<String, String>();
+        emp_otp_Hashmap = new ConcurrentHashMap<String, String>();
 
         // TODO : Initialize all the staffuser HashMaps
         monitorStaffs = new ConcurrentHashMap<String, StaffClientMonitor>();

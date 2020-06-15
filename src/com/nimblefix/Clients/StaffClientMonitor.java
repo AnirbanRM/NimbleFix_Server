@@ -4,6 +4,7 @@ import com.nimblefix.ControlMessages.ComplaintMessage;
 import com.nimblefix.ControlMessages.MaintainenceMessage;
 import com.nimblefix.ControlMessages.PendingWorkMessage;
 import com.nimblefix.ControlMessages.WorkerExchangeMessage;
+import com.nimblefix.Main;
 import com.nimblefix.Server;
 import com.nimblefix.ServerParam;
 import com.nimblefix.core.*;
@@ -93,13 +94,16 @@ public class StaffClientMonitor {
         else if(object instanceof MaintainenceMessage){
             if(((MaintainenceMessage)object).getBody().equals("FETCH"))
                 handleMaintainenceMessage((MaintainenceMessage) object);
+            else if(((MaintainenceMessage) object).getBody().equals("MAINTAINENCE_ASSIGNMENT"))
+                handleAssignment((MaintainenceMessage) object);
         }
     }
 
     private void handleMaintainenceMessage(MaintainenceMessage message) {
         if(message.getBody().equals("FETCH")){
-            File f = new File(serverParam.getWorkingDirectory()+"/userdata/"+ userID+ "/Maintainence/"+message.getOui());
             message.setBody("FETCHRESULT");
+
+            File f = new File(serverParam.getWorkingDirectory()+"/userdata/"+ userID+ "/Maintainence/"+message.getOui());
             if(f.exists()){
                 try{
                     FileInputStream fis = new FileInputStream(f);
@@ -109,6 +113,22 @@ public class StaffClientMonitor {
                     message.setMaintainenceMap((Map<String, InventoryMaintainenceClass>) o);
                 }catch (Exception e){ }
             }
+
+            Map<String, MaintainenceAssignedData> assignedData = new HashMap<String, MaintainenceAssignedData>();
+            f = new File(serverParam.getWorkingDirectory()+"/userdata/"+ userID+ "/Maintainence/AssignedData/");
+            if(f.exists() && f.isDirectory()){
+                for(File fi : f.listFiles()){
+                    try{
+                        FileInputStream fis = new FileInputStream(fi);
+                        ObjectInputStream ois = new ObjectInputStream(fis);
+                        Object o = ois.readObject();
+                        fis.close();
+                        assignedData.put(fi.getName(),(MaintainenceAssignedData) o);
+                    }catch (Exception e){ }
+                }
+            }
+            message.setAssignedData(assignedData);
+
             try {
                 WRITER.reset();
                 WRITER.writeUnshared(message);
@@ -117,7 +137,7 @@ public class StaffClientMonitor {
     }
 
     private void pushPendingWorkData(PendingWorkMessage pendingWorkMessage) {
-        ResultSet rs = Server.dbClass.executequeryView("select OrganizationID,ProblemStatus,AssignedTo,COUNT(*) as Count from complaints group by AssignedTo having OrganizationID = '"+pendingWorkMessage.getOrganizationID()+"' and ProblemStatus = 'UNFIXED';");
+        ResultSet rs = Server.dbClass.executequeryView("select OrganizationID,ProblemStatus,AssignedTo,COUNT(*) as Count from complaints where OrganizationID = '"+pendingWorkMessage.getOrganizationID()+"' and ProblemStatus = 'UNFIXED' group by AssignedTo;");
         Map<String,Integer> map = new HashMap<String,Integer>();
 
         try {
@@ -157,6 +177,7 @@ public class StaffClientMonitor {
 
     private void handleAssignment(ComplaintMessage complaint) {
         Server.dbClass.executequeryUpdate("update complaints set AssignedBy = '"+complaint.getComplaint().getAssignedBy()+"', AssignedTo = '"+complaint.getComplaint().getAssignedTo()+"', AssignedDateTime = '"+complaint.getComplaint().getAssignedDateTime()+"', AdminComments = '"+complaint.getComplaint().getAdminComments()+"' where ID = "+complaint.getComplaint().getDbID()+";");
+        complaint.getComplaint().setLocationImage(complaint.getLocation_image());
         sendEmailforAssignment(complaint);
         updateComplaintinFS(complaint);
         complaint.setBody("ASSIGNMENT_SUCCESS");
@@ -166,6 +187,46 @@ public class StaffClientMonitor {
             WRITER.writeUnshared(complaint);
         }catch (Exception e){ e.printStackTrace(); }
     }
+
+    private void handleAssignment(MaintainenceMessage maintainenceMessage) {
+        sendEmailforAssignment(maintainenceMessage.getAssignedData(),maintainenceMessage.getLocation_image());
+        updateMaintainenceAssignmentinFS(maintainenceMessage.getAssignedData());
+        maintainenceMessage.setBody("ASSIGNMENT_SUCCESS");
+
+        maintainenceMessage.setLocation_image(null);
+        maintainenceMessage.setMaintainenceMap(null);
+        try {
+            WRITER.reset();
+            WRITER.writeUnshared(maintainenceMessage);
+        }catch (Exception e){ e.printStackTrace(); }
+    }
+
+    private void updateMaintainenceAssignmentinFS(Map<String, MaintainenceAssignedData> assignedData) {
+        File folder = new File(serverParam.getWorkingDirectory()+"/userdata/"+ userID+ "/Maintainence/AssignedData");
+        if(!folder.exists())
+            folder.mkdirs();
+
+        File assignmentFile = new File( folder.getPath() + "/" + ((MaintainenceAssignedData)assignedData.values().toArray()[0]).getInventoryItem().getId());
+        assignmentFile.delete();
+
+        try {
+            FileOutputStream fos = new FileOutputStream(assignmentFile);
+            ObjectOutputStream oos = new ObjectOutputStream(fos);
+            oos.writeUnshared(assignedData.values().toArray()[0]);
+            fos.close();
+        } catch (Exception e) { System.out.println(e.getMessage()); }
+    }
+
+    private void sendEmailforAssignment(Map<String, MaintainenceAssignedData> assignedData, byte[] location_image) {
+        final MaintainenceAssignedData data = (MaintainenceAssignedData) assignedData.values().toArray()[0];
+        new Thread(() -> {
+            try {
+                String body = SMTPClass.getMaintainenceNotificationMessage(data.getInventoryItem(),data.getFloorID(),data);
+                Server.smtpClass.sendMail(data.getAssignedBy() , data.getAssignedTo(), "New Assignment", body,location_image);
+            } catch (Exception e) { e.printStackTrace(); }
+        }).start();
+    }
+
 
     private void updateComplaintinFS(ComplaintMessage complaint) {
         File compFile = new File(serverParam.getWorkingDirectory()+"/userdata/"+ userID +"/complaints/"+complaint.getComplaint().getOrganizationID() + "/" + complaint.getComplaint().getComplaintID());
