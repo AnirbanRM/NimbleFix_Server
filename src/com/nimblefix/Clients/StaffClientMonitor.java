@@ -1,9 +1,6 @@
 package com.nimblefix.Clients;
 
-import com.nimblefix.ControlMessages.ComplaintMessage;
-import com.nimblefix.ControlMessages.MaintainenceMessage;
-import com.nimblefix.ControlMessages.PendingWorkMessage;
-import com.nimblefix.ControlMessages.WorkerExchangeMessage;
+import com.nimblefix.ControlMessages.*;
 import com.nimblefix.Main;
 import com.nimblefix.Server;
 import com.nimblefix.ServerParam;
@@ -26,6 +23,8 @@ public class StaffClientMonitor {
 
     String userID;
     Organization organization;
+
+    boolean listen=true;
 
     public StaffClientMonitor(StaffClient staffClient, Organization organization) {
         System.out.println("Converting StaffClient to Staff ClientMonitor");
@@ -58,7 +57,7 @@ public class StaffClientMonitor {
         Thread reader_thread = new Thread(new Runnable() {
             @Override
             public void run() {
-                while(true){
+                while(listen){
                     try {
                         Object obj = READER.readUnshared();
                         handle(obj);
@@ -71,8 +70,19 @@ public class StaffClientMonitor {
 
     public void pushComplaint(Complaint complaint){
         try {
+            ComplaintMessage complaintMessage = new ComplaintMessage(complaint);
+            complaintMessage.setBody("COMPLAINT");
             WRITER.reset();
-            WRITER.writeUnshared(new ComplaintMessage(complaint));
+            WRITER.writeUnshared(complaintMessage);
+        }catch (Exception e){ e.printStackTrace(); }
+    }
+
+    public void resolveComplaint(Complaint complaint){
+        try {
+            ComplaintMessage complaintMessage = new ComplaintMessage(complaint);
+            complaintMessage.setBody("FIXED");
+            WRITER.reset();
+            WRITER.writeUnshared(complaintMessage);
         }catch (Exception e){ e.printStackTrace(); }
     }
 
@@ -96,6 +106,11 @@ public class StaffClientMonitor {
                 handleMaintainenceMessage((MaintainenceMessage) object);
             else if(((MaintainenceMessage) object).getBody().equals("MAINTAINENCE_ASSIGNMENT"))
                 handleAssignment((MaintainenceMessage) object);
+        }
+
+        else if(object instanceof MonitorMessage){
+            if(((MonitorMessage) object).getMessageType()==MonitorMessage.MessageType.CLIENT_MONITOR_STOP)
+                cancelMonitor((MonitorMessage) object);
         }
     }
 
@@ -283,5 +298,17 @@ public class StaffClientMonitor {
             WRITER.reset();
             WRITER.writeUnshared(wem);
         }catch (Exception e){ }
+    }
+
+    private void cancelMonitor(MonitorMessage object) {
+        try {
+            WRITER.reset();
+            WRITER.writeUnshared(new MonitorMessage(userID,organization.getOui(), MonitorMessage.MessageType.CLIENT_MONITOR_STOP));
+            listen=false;
+            StaffClient sc = new StaffClient(this);
+            this.finalize();
+        } catch(Exception e){ } catch (Throwable throwable) {
+            throwable.printStackTrace();
+        }
     }
 }

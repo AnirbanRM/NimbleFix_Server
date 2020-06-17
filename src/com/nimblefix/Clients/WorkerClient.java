@@ -112,6 +112,7 @@ public class WorkerClient {
 
         else if(msg.getBody().contains("DONE")){
             setAsDone(msg.getBody().substring(4), msg.getComplaint());
+            takebackComplaint(msg);
             try {
                 writer.writeUnshared(new ComplaintMessage((Complaint) null));
             }catch (Exception e){}
@@ -156,6 +157,14 @@ public class WorkerClient {
             writer.reset();
             writer.writeUnshared(obj);
         }catch (Exception e){ }
+    }
+
+    private void takebackComplaint(ComplaintMessage obj) {
+
+        //Push if online
+        StaffClientMonitor scm = Server.monitorStaffs.get(obj.getComplaint().getOrganizationID());
+        if(scm!=null)
+            scm.resolveComplaint(obj.getComplaint());
     }
 
     private void clear() {

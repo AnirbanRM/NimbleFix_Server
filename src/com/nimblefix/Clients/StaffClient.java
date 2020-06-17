@@ -37,6 +37,18 @@ public class StaffClient {
         listentoIncomingObjects();
     }
 
+    StaffClient(StaffClientMonitor clientMonitor){
+        Server.monitorStaffs.remove(clientMonitor.organization.getOui());
+
+        this.SOCKET =clientMonitor.SOCKET;
+        this.WRITER=clientMonitor.WRITER;
+        this.READER= clientMonitor.READER;
+        this.userID=clientMonitor.userID;
+        this.serverParam=clientMonitor.serverParam;
+
+        listentoIncomingObjects();
+    }
+
     private void listentoIncomingObjects(){
         Thread reader_thread = new Thread(new Runnable() {
             @Override
@@ -340,7 +352,6 @@ public class StaffClient {
             WRITER.writeUnshared(organizationsExchangerMessage);
         } catch (IOException e) { System.out.println(e.getMessage()); }
     }
-
 
 
     private void handleMonitor(MonitorMessage object) {
