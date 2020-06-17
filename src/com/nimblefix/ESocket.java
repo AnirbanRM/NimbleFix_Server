@@ -7,7 +7,10 @@ import com.nimblefix.ControlMessages.AuthenticationMessage;
 import com.nimblefix.core.Worker;
 
 import java.io.*;
+import java.math.BigInteger;
 import java.net.Socket;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Random;
@@ -359,9 +362,30 @@ public class ESocket {
     }
 
     private boolean checkValidityStaff(String a, String b){
-        if(a.equals("Anirban")&&b.equals("123456"))
-            return true;
-        else return false;
+        String q = "SELECT * from orgadmin where email = '"+a+"' and password = '"+md5(b)+"';";
+        try {
+            ResultSet r = Server.dbClass.executequeryView(q);
+            while (r.next()) {
+                return true;
+            }
+            return false;
+        }catch (Exception e){ return false;}
+    }
+
+    public static String md5(String input) {
+        try {
+            MessageDigest md = MessageDigest.getInstance("MD5");
+            byte[] messageDigest = md.digest(input.getBytes());
+            BigInteger no = new BigInteger(1, messageDigest);
+            String hashtext = no.toString(16);
+            while (hashtext.length() < 32) {
+                hashtext = "0" + hashtext;
+            }
+            return hashtext;
+            }
+        catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private void converttoStaff(String staffID){
